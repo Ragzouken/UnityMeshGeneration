@@ -118,7 +118,7 @@ public class MeshTool
         SetTriangle(b, ta);
     }
 
-    public void SwapVertex(int a, int b)
+    public void SwapVertex(int a, int b, bool indices = false)
     {
         Swap(positions, a, b);
         Swap(normals, a, b);
@@ -126,15 +126,18 @@ public class MeshTool
         Swap(uv0s, a, b);
         Swap(uv1s, a, b);
 
-        for (int i = 0; i < indices.Length; ++i)
+        if (indices)
         {
-            if (indices[i] == a)
+            for (int i = 0; i < this.indices.Length; ++i)
             {
-                indices[i] = b;
-            }
-            else if (indices[i] == b)
-            {
-                indices[i] = a;
+                if (this.indices[i] == a)
+                {
+                    this.indices[i] = b;
+                }
+                else if (this.indices[i] == b)
+                {
+                    this.indices[i] = a;
+                }
             }
         }
     }

@@ -272,53 +272,46 @@ public class SphereGenerator
 
     public static void CullSphereToHemisphere(MeshTool geometry)
     {
-        // cullable[index, phase]
-        // phase 0 - below 0
-        // phase 1 - below 0 and not part of an uncullable triangle
-        var cullable = new bool[geometry.VertexCount, 2];
-
-        for (int i = 0; i < geometry.VertexCount; ++i)
-        {
-            cullable[i, 0] = geometry.positions[i].y < 0;
-            cullable[i, 1] = true;
-        }
-
         int lastTri = geometry.indices.Length / 3 - 1;
-        int lastVert = geometry.VertexCount - 1;
+        var vertUse = new byte[geometry.VertexCount]; 
 
         for (int i = 0; i <= lastTri; ++i)
         {
             var triangle = geometry.GetTriangle(i);
 
-            bool cull = cullable[triangle.x, 0]
-                     && cullable[triangle.y, 0]
-                     && cullable[triangle.z, 0];
+            Vector3 a = geometry.positions[triangle.x];
+            Vector3 b = geometry.positions[triangle.y];
+            Vector3 c = geometry.positions[triangle.z];
 
-            cullable[triangle.x, 1] &= cull;
-            cullable[triangle.y, 1] &= cull;
-            cullable[triangle.z, 1] &= cull;
-
-            if (cull && i <= lastTri)
+            if (Vector3.Cross(b - a, c - a).y < 0)
             {
                 geometry.SwapTriangle(i, lastTri);
                 lastTri -= 1;
                 i -= 1;
             }
+            else
+            {
+                vertUse[triangle.x] += 1;
+                vertUse[triangle.y] += 1;
+                vertUse[triangle.z] += 1;
+            }
         }
+
+        int lastVert = geometry.VertexCount - 1;
 
         for (int i = 0; i <= lastVert; ++i)
         {
-            while (cullable[i, 1] && i <= lastVert)
+            if (vertUse[i] == 0)
             {
-                Swap(ref cullable[i, 1], ref cullable[lastVert, 1]);
-                geometry.SwapVertex(i, lastVert);
-
+                geometry.SwapVertex(i, lastVert, indices: true);
+                Swap(ref vertUse[i], ref vertUse[lastVert]);
                 lastVert -= 1;
+                i -= 1;
             }
         }
 
         geometry.SetVertexCount(lastVert + 1);
-        geometry.SetIndexCount((lastTri + 1) * 3, preserve: true);
+        geometry.SetIndexCount((lastTri + 1) * 3, preserve: true, lazy: false);
 
         geometry.mesh.Clear();
         geometry.Apply(positions: true, normals: true, indices: true);
