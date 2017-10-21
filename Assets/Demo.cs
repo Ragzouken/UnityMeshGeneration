@@ -15,9 +15,10 @@ public class Demo : MonoBehaviour
     private MeshTool tool;
 
     [Header("Config")]
-    [Range(0, 12)]
-    public int level;
+    [Range(3, 32)]
+    public int sides;
     public bool correction;
+    public bool subdivide;
 
     private void Awake()
     {
@@ -29,8 +30,9 @@ public class Demo : MonoBehaviour
     public void Refresh()
     {
         //SphereGenerator.Sphere(tool, 0.5f, level, correction);
-        SphereGenerator.Hemisphere(tool, 0.5f, level, correction);
-        //transform.localRotation = Random.rotationUniform;
+        SphereGenerator.Hemisphere(tool, 0.5f, sides, subdivide, correction);
+        transform.localRotation = Quaternion.Euler(-90, 0, 0);
+        transform.Rotate(Vector3.up, Random.value * 360);
     }
 
     public void Update()
