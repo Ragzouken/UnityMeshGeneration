@@ -270,10 +270,80 @@ public class SphereGenerator
         geometry.Apply(positions: true, normals: true, indices: true);
     }
 
+    public static void CullSphereToHemisphere(MeshTool geometry)
+    {
+        // cullable[index, phase]
+        // phase 0 - below 0
+        // phase 1 - below 0 and not part of an uncullable triangle
+        var cullable = new bool[geometry.VertexCount, 2];
+
+        for (int i = 0; i < geometry.VertexCount; ++i)
+        {
+            cullable[i, 0] = geometry.positions[i].y < 0;
+            cullable[i, 1] = true;
+        }
+
+        int lastTri = geometry.indices.Length / 3 - 1;
+        int lastVert = geometry.VertexCount - 1;
+
+        for (int i = 0; i <= lastTri; ++i)
+        {
+            var triangle = geometry.GetTriangle(i);
+
+            bool cull = cullable[triangle.x, 0]
+                     && cullable[triangle.y, 0]
+                     && cullable[triangle.z, 0];
+
+            cullable[triangle.x, 1] &= cull;
+            cullable[triangle.y, 1] &= cull;
+            cullable[triangle.z, 1] &= cull;
+
+            if (cull && i <= lastTri)
+            {
+                geometry.SwapTriangle(i, lastTri);
+                lastTri -= 1;
+                i -= 1;
+            }
+        }
+
+        for (int i = 0; i <= lastVert; ++i)
+        {
+            while (cullable[i, 1] && i <= lastVert)
+            {
+                Swap(ref cullable[i, 1], ref cullable[lastVert, 1]);
+                geometry.SwapVertex(i, lastVert);
+
+                lastVert -= 1;
+            }
+        }
+
+        geometry.SetVertexCount(lastVert + 1);
+        geometry.SetIndexCount((lastTri + 1) * 3, preserve: true);
+
+        geometry.mesh.Clear();
+        geometry.Apply(positions: true, normals: true, indices: true);
+    }
+
+    public static void Swap<T>(ref T a, ref T b)
+    {
+        var t = a;
+        a = b;
+        b = t;
+    }
+
     public static void Hemisphere(MeshTool geometry,
                                   float radius,
                                   int complexity,
                                   bool correction)
+    {
+        Sphere(geometry, radius, complexity, correction);
+        CullSphereToHemisphere(geometry);
+    }
+
+    public static void HemisphereOld(MeshTool geometry,
+                                     float radius,
+                                     int complexity,
+                                     bool correction)
     {
         int subdivisions = complexity / 6;
         int sides = (complexity % 6) + 3; 
@@ -304,7 +374,7 @@ public class SphereGenerator
         }
 
         geometry.SetVertexCount(vertCount);
-        geometry.SetIndexCount(faceCount * 3);
+        geometry.SetIndexCount(faceCount * 3, lazy: true);
 
         geometry.ActiveVertices = sides + 1;
         geometry.ActiveIndices = sides * 3;

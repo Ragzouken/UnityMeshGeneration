@@ -18,7 +18,7 @@ public class Demo : MonoBehaviour
     [Range(0, 16)]
     public int complexity;
     public bool correction;
-    public bool subdivide;
+    public bool spin;
 
     private void Awake()
     {
@@ -31,8 +31,12 @@ public class Demo : MonoBehaviour
     {
         //SphereGenerator.Sphere(tool, 0.5f, level, correction);
         SphereGenerator.Hemisphere(tool, 0.5f, complexity, correction);
-        transform.localRotation = Quaternion.Euler(-90, 0, 0);
-        transform.Rotate(Vector3.up, Random.value * 360);
+
+        if (spin)
+        {
+            transform.localRotation = Quaternion.Euler(-90, 0, 0);
+            transform.Rotate(Vector3.up, Random.value * 360);
+        }
     }
 
     public void Update()

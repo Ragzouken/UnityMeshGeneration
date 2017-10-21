@@ -41,7 +41,7 @@ public class MeshTool
     }
 
     public void SetIndexCount(int count, 
-                              bool lazy=false,
+                              bool lazy=true,
                               bool preserve=false)
     {
         if (indices.Length < count || !lazy)
@@ -108,6 +108,42 @@ public class MeshTool
         Assert.IsTrue(indices.Length >= index * 3 + 2, "This mesh doesn't have enough indices!");
 
         return indices.GetTriangle(index);
+    }
+
+    public void SwapTriangle(int a, int b)
+    {
+        var ta = GetTriangle(a);
+        var tb = GetTriangle(b);
+        SetTriangle(a, tb);
+        SetTriangle(b, ta);
+    }
+
+    public void SwapVertex(int a, int b)
+    {
+        Swap(positions, a, b);
+        Swap(normals, a, b);
+        Swap(colors, a, b);
+        Swap(uv0s, a, b);
+        Swap(uv1s, a, b);
+
+        for (int i = 0; i < indices.Length; ++i)
+        {
+            if (indices[i] == a)
+            {
+                indices[i] = b;
+            }
+            else if (indices[i] == b)
+            {
+                indices[i] = a;
+            }
+        }
+    }
+
+    public static void Swap<T>(List<T> list, int a, int b)
+    {
+        var t = list[a];
+        list[a] = list[b];
+        list[b] = t;
     }
 }
 
