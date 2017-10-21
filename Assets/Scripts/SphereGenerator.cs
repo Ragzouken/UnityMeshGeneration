@@ -269,4 +269,77 @@ public class SphereGenerator
         geometry.mesh.Clear();
         geometry.Apply(positions: true, normals: true, indices: true);
     }
+
+    public static void Hemisphere(MeshTool geometry,
+                                  float radius,
+                                  int sides,
+                                  bool correction)
+    {
+        if (correction)
+        {
+            //radius *= geodesic.Correction;
+        }
+
+        // pyramid
+        int vertCount = sides + 1;
+        int faceCount = sides;
+
+        geometry.SetVertexCount(vertCount + sides * 2);
+        geometry.SetIndexCount(sides * 3 * 4);
+
+        geometry.ActiveVertices = sides + 1;
+        geometry.ActiveIndices = sides * 3;
+
+        geometry.positions[0] = new Vector3(0, radius, 0);
+        geometry.normals[0] = new Vector3(0, 1, 0);
+
+        float da = Mathf.PI * 2 / sides;
+
+        Debug.Log(radius);
+
+        for (int i = 1; i < vertCount; ++i)
+        {
+            var normal = new Vector3(Mathf.Cos(da * i), 0, Mathf.Sin(da * i));
+
+            geometry.positions[i] = FasterMath.Mul(normal, radius);
+            geometry.normals[i] = normal;
+        }
+
+        for (int i = 1; i < sides; ++i)
+        {
+            geometry.SetTriangle(i, 0, i + 1, i);
+        }
+
+        geometry.SetTriangle(0, 0, 1, sides);
+
+        int prevTriCount = geometry.ActiveIndices / 3;
+        int nextTriCount = 0;
+        
+        var edges = new Dictionary<int, ushort>(prevTriCount * 6);
+
+        for (int i = 0; i < 1; i++)
+        {
+            nextTriCount = prevTriCount * 4;
+
+            for (int j = 0; j < prevTriCount; ++j)
+            {
+                var tri = geometry.GetTriangle(j);
+                
+                int a = GetMiddlePoint((ushort) tri.x, (ushort) tri.y, geometry, radius, edges);
+                int b = GetMiddlePoint((ushort) tri.y, (ushort) tri.z, geometry, radius, edges);
+                int c = GetMiddlePoint((ushort) tri.z, (ushort) tri.x, geometry, radius, edges);
+
+                geometry.SetTriangle(prevTriCount + j * 3 + 0, tri.x, a, c);
+                geometry.SetTriangle(prevTriCount + j * 3 + 1, tri.y, b, a);
+                geometry.SetTriangle(prevTriCount + j * 3 + 2, tri.z, c, b);
+                geometry.SetTriangle(j, a, b, c);
+            }
+
+            prevTriCount = nextTriCount;
+            edges.Clear();
+        }
+
+        geometry.mesh.Clear();
+        geometry.Apply(positions: true, normals: true, indices: true);
+    }
 }

@@ -28,17 +28,13 @@ public class Demo : MonoBehaviour
 
     public void Refresh()
     {
-        SphereGenerator.Sphere(tool, 0.5f, level, correction);
-        transform.localRotation = Random.rotationUniform;
+        //SphereGenerator.Sphere(tool, 0.5f, level, correction);
+        SphereGenerator.Hemisphere(tool, 0.5f, level, correction);
+        //transform.localRotation = Random.rotationUniform;
     }
 
-    public IEnumerator Start()
+    public void Update()
     {
-        while (true)
-        {
-            Refresh();
-
-            yield return null;//new WaitForSeconds(.5f);
-        }
+        Refresh();
     }
 }
