@@ -272,10 +272,12 @@ public class SphereGenerator
 
     public static void Hemisphere(MeshTool geometry,
                                   float radius,
-                                  int sides,
-                                  bool subdivide,
+                                  int complexity,
                                   bool correction)
     {
+        int subdivisions = complexity / 6;
+        int sides = (complexity % 6) + 3; 
+
         if (correction)
         {
             // try to make the average of apoth/radius = desired radius
@@ -286,15 +288,23 @@ public class SphereGenerator
             // rearrange to determine radius from desired radius
             // * radius = desired / ((1 + cos(pi / sides)) / 2)
             
-            radius = radius * 2 / (1 + Mathf.Cos(Mathf.PI / sides));
+            radius = radius * 2 / (1 + Mathf.Cos(Mathf.PI / (sides * (subdivisions + 1))));
         }
 
         // pyramid
         int vertCount = sides + 1;
         int faceCount = sides;
+        int edgeCount = sides * 2;
 
-        geometry.SetVertexCount(vertCount + (subdivide ? sides * 2 : 0));
-        geometry.SetIndexCount(sides * 3 * (subdivide ? 4 : 1));
+        for (int i = 0; i < subdivisions; ++i)
+        {
+            vertCount += edgeCount;
+            edgeCount += faceCount * 6;
+            faceCount *= 4;
+        }
+
+        geometry.SetVertexCount(vertCount);
+        geometry.SetIndexCount(faceCount * 3);
 
         geometry.ActiveVertices = sides + 1;
         geometry.ActiveIndices = sides * 3;
@@ -319,34 +329,31 @@ public class SphereGenerator
 
         geometry.SetTriangle(0, 0, 1, sides);
 
-        if (subdivide)
+        int prevTriCount = geometry.ActiveIndices / 3;
+        int nextTriCount = 0;
+
+        var edges = new Dictionary<int, ushort>(prevTriCount * 6);
+
+        for (int i = 0; i < subdivisions; i++)
         {
-            int prevTriCount = geometry.ActiveIndices / 3;
-            int nextTriCount = 0;
+            nextTriCount = prevTriCount * 4;
 
-            var edges = new Dictionary<int, ushort>(prevTriCount * 6);
-
-            for (int i = 0; i < 1; i++)
+            for (int j = 0; j < prevTriCount; ++j)
             {
-                nextTriCount = prevTriCount * 4;
+                var tri = geometry.GetTriangle(j);
 
-                for (int j = 0; j < prevTriCount; ++j)
-                {
-                    var tri = geometry.GetTriangle(j);
+                int a = GetMiddlePoint((ushort) tri.x, (ushort) tri.y, geometry, radius, edges);
+                int b = GetMiddlePoint((ushort) tri.y, (ushort) tri.z, geometry, radius, edges);
+                int c = GetMiddlePoint((ushort) tri.z, (ushort) tri.x, geometry, radius, edges);
 
-                    int a = GetMiddlePoint((ushort) tri.x, (ushort) tri.y, geometry, radius, edges);
-                    int b = GetMiddlePoint((ushort) tri.y, (ushort) tri.z, geometry, radius, edges);
-                    int c = GetMiddlePoint((ushort) tri.z, (ushort) tri.x, geometry, radius, edges);
-
-                    geometry.SetTriangle(prevTriCount + j * 3 + 0, tri.x, a, c);
-                    geometry.SetTriangle(prevTriCount + j * 3 + 1, tri.y, b, a);
-                    geometry.SetTriangle(prevTriCount + j * 3 + 2, tri.z, c, b);
-                    geometry.SetTriangle(j, a, b, c);
-                }
-
-                prevTriCount = nextTriCount;
-                edges.Clear();
+                geometry.SetTriangle(prevTriCount + j * 3 + 0, tri.x, a, c);
+                geometry.SetTriangle(prevTriCount + j * 3 + 1, tri.y, b, a);
+                geometry.SetTriangle(prevTriCount + j * 3 + 2, tri.z, c, b);
+                geometry.SetTriangle(j, a, b, c);
             }
+
+            prevTriCount = nextTriCount;
+            edges.Clear();
         }
 
         geometry.mesh.Clear();
